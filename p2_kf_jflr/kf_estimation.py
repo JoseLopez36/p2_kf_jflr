@@ -13,6 +13,10 @@ from .filters.kalman_filter import KalmanFilter
 
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+# Publish odometry: 
+# Example command to publish odometry (use single quotes for YAML):
+# ros2 topic pub -r 20 /odom geometry_msgs/msg/PoseWithCovarianceStamped '{header: {stamp: {sec: 0, nanosec: 0}, frame_id: "odom"}, pose: {pose: {position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, covariance: [0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1]}}'
+
 class KalmanFilterNode(Node):
     def __init__(self):
         super().__init__('kalman_filter_node')
