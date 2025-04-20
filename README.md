@@ -1,88 +1,77 @@
-# Práctica 2: Filtro de Kalman en ROS 2
-Este repositorio contiene el código base para la **Práctica 2** de la asignatura de *Ampliación de Robótica*, cuyo objetivo es implementar un **Filtro de Kalman (KF)** en un entorno simulado con **ROS 2**.
+# Práctica 2 - Ampliación de Robótica: Filtro de Kalman
 
-El ejercicio se divide en dos partes: una primera aproximación basada en odometría con estimación de posición, y una segunda con estimación de posición y velocidad utilizando un modelo de estado extendido.
+El filtro de Kalman implementado en este proyecto está diseñado para estimar la posición y orientación (x, y, θ) de un robot (y en algunos casos también su velocidad: vx, vy, ω) basándose en mediciones ruidosas. Se han estudiado tres casos con diferentes configuraciones de ruido.
 
----
+## Estructura del Filtro
 
-## Estructura del repositorio
- - kalman_filter.py # Implementación del KF con TODOs para completar 
- - kf_estimation.py # Nodo con el modelo básico de KF (posición)
- - kf_estimation_vel.py # Nodo con el modelo completo de KF (posición y velocidad) 
- - motion_models.py # Modelos de movimiento A y B 
- - observation_models.py # Modelos de observación C
- - sensor_utils.py # Funciones de alto nivel para facilitar las cosas con los sensores
- - visualization.py # Funciones de visualización de resultados
- 
+Se implementaron dos versiones del filtro de Kalman:
 
-## Instrucciones
+1. **KalmanFilter**: Modelo básico que estima solo posición/orientación [x, y, θ]. Su implementación se encuentra en `/p2_kf_jflr/filters/kalman_filter.py`
+2. **KalmanFilter_2**: Modelo extendido que estima posición/orientación y velocidad [x, y, θ, vx, vy, ω]. Su implementación se encuentra en `/p2_kf_jflr/filters/kalman_filter.py`
 
-### Requisitos previos
-Descargar el simulador y los paquetes dependientes del mismo para poder trabajar con el robot Turtlebot 4:
+### Modelos matemáticos implementados:
 
-```bash
-sudo apt install ros-humble-turtlebot4-simulator ros-humble-irobot-create-nodes ros-dev-tools
+- **Modelo de movimiento (predicción)**:
+  - Para el modelo básico: Matriz de transición A y matriz de control B.
+  - Para el modelo extendido: Incluye términos para la velocidad lineal y angular
 
-```
+- **Modelo de observación (corrección)**:
+  - Matrices C que mapean el estado interno a las observaciones medidas
 
-### 1. Clonar el repositorio
+Todos los modelos se encuentran en `/p2_kf_jflr/motion_models.py` (predicción) y `/p2_kf_jflr/observation_models.py` (observación).
 
-```bash
-git clone https://github.com/miggilcas/p2_kf_adr
-cd p2_kf_adr
-```
-### 2. Construir el paquete
-```bash
-colcon build --packages-select p2_kf_adr
-source install/setup.zsh  # o setup.bash si no estás usando el docker
-```
-### 3. Lanzar el simulador
-```bash
-ros2 launch turtlebot4_ignition_bringup turtlebot4_ignition.launch.py slam:=true nav2:=true rviz:=true
-```
-### 4. Ejecutar el nodo del filtro de Kalman
-#### Modelo 1: estimación de posición
-```bash
-ros2 run p2_kf_adr kf_estimation
-```
-#### Modelo 2:
-```bash
-ros2 run p2_kf_adr kf_estimation_vel
-```
+## Casos Estudiados
 
-## Objetivo de la práctica
+Todas las imágenes discutidas se encuentran `/media`.
 
-- Comprender y programar un filtro de Kalman básico para estimar la posición del robot.
-- Ampliar el modelo de estado para incluir velocidad y emplear un modelo lineal puro.
-- Comparar el comportamiento del filtro con diferentes configuraciones de ruido.
-- Preparar el terreno para el uso de un Filtro de Kalman Extendido (EKF) en la siguiente práctica.
+### 1. Caso de Bajo Ruido (LowNoiseKalman1.png y LowNoiseKalman2.png)
 
-## Qué deben completar los estudiantes
-Los archivos kalman_filter.py, motion_models.py y observation_models.py contienen TODOs que los alumnos deben implementar.
+**Configuración**:
+- Ruido de proceso (R) bajo: `[0.02, 0.02, 0.01]` para el modelo de posición y `[0.02, 0.02, 0.01, 0.02, 0.02, 0.01]` para el modelo extendido. Se escogieron de forma arbitraria, en función de la fiabilidad del modelo.
+- Ruido de observación (Q) bajo: valores similares a R. Se escogieron valores idénticos al ruido de medición.
 
-Las clases principales son:
+**Resultados**:
+- Se observa una convergencia rápida hacia los valores reales (ground truth).
+- Error muy pequeño (~0.01) después de pocas iteraciones.
+- Covarianza que disminuye rápidamente (valores muy pequeños como 0.000248 para iteración 3 de Kalman1).
+- Las estimaciones son muy cercanas a los valores reales, con errores mínimos.
+- Se observa una convergencia más veloz en el modelo extendido.
 
-- KalmanFilter – Para el modelo simple (posición).
-- KalmanFilter_2 – Para el modelo completo (posición + velocidad).
+### 2. Caso de Alto Ruido en Mediciones (HighMeasureNoiseKalman1.png y HighMeasureNoiseKalman2.png)
 
-## Entrega
-Los estudiantes deberán subir a GitHub o entregar un archivo .zip con nombre: p2_kf_<iniciales> (por ejemplo: p2_kf_mgc).
+**Configuración**:
+- Ruido de proceso bajo, como en el experimento previo.
+- Ruido de observación alto: `[0.1, 0.1, 0.05]` para posición y `[0.1, 0.1, 0.05, 0.1, 0.1, 0.05]` para el modelo extendido, 5 veces más alto que el caso 1.
 
-El repositorio o archivo.zip debe contener:
+**Resultados**:
+- Mayor divergencia inicial entre estimaciones y valores reales.
+- La covarianza disminuye más lentamente.
+- Los errores son notablemente mayores, especialmente al principio.
+- El filtro tarda más iteraciones en converger.
+- Valores de covarianza más altos (0.002780 para iteración 3 de Kalman1) que en el caso de bajo ruido.
 
-1. Código completo con los TODOs resueltos.
+### 3. Caso de Alto Ruido en Proceso (HighProcessNoiseKalman1.png y HighProcessNoiseKalman2.png)
 
-2. Capturas o gráficas de los resultados de estimación para ambos modelos.
+**Configuración**:
+- Ruido de proceso alto: `[0.1, 0.1, 0.05]` para posición y `[0.1, 0.1, 0.05, 0.1, 0.1, 0.05]` para el modelo extendido, 5 veces más alto que el caso 1.
+- Ruido de medición bajo, como en el primer experimento.
 
-3. Experimentos con tres configuraciones distintas:
-    - Ruido bajo.
-    - Ruido alto en la medida.
-    - Ruido alto en el proceso.
+**Resultados**:
+- El filtro confía más en las mediciones que en las predicciones.
+- La covarianza tiende a mantenerse más elevada que en el caso de bajo ruido.
+- Al final de las iteraciones, las estimaciones siguen mejorando pero no alcanzan la precisión del caso de bajo ruido (covarianza de 0.000385 para iteración 3 de Kalman1).
 
-4. Un README o una pequeña memoria en PDF explicando:
-    - Cómo se ha implementado cada parte.
-    - Resultados observados en los tres casos.
-    - Breve análisis de por qué ocurre lo observado.
+## Comparación de los Modelos
 
-## Comentarios adicionales
-Podéis cambiarle el nombre al paquete y ponerle el mismo que a la entrega, pero sed consistentes a la hora de configurar el paquete y que esté ese nombre en todos lados para que compile bien (tanto en el nombre de la carpeta donde estarán los scripts como en el setup.cfg, como en el setup.py y como en el package.xml).
+1. **Modelo básico**:
+   - Más simple y ligero, estima solo posición.
+   - Menos resistente a ruido alto en las mediciones.
+
+2. **Modelo extendido**:
+   - Incluye estimación de velocidades (vx, vy, ω).
+   - Más robusto ante perturbaciones.
+   - Puede producir mejores estimaciones a largo plazo.
+
+El comportamiento observado corresponde a la teoría del filtro de Kalman: cuando el ruido de medición es alto, el filtro confía más en su modelo de predicción, mientras que cuando el ruido de proceso es alto, confía más en las mediciones.
+
+El código de los nodos principales se encuentra en `/p2_kf_jflr/kf_estimation.py` (modelo de posición) y `/p2_kf_jflr/kf_estimation_vel.py` (modelo extendido).
