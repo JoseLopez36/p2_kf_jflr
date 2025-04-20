@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'kf_estimation = p2_kf_jflr.kf_estimation:main',
             'kf_estimation_vel = p2_kf_jflr.kf_estimation_vel:main',
+            'visualization = p2_kf_jflr.visualization:main'
         ],
     },
 )

@@ -102,10 +102,10 @@ class Visualizer(Node):
         """Displays the Matplotlib plot."""
         plt.show()
 
-if __name__ == "__main__":
-    rclpy.init()
-    visualizer = Visualizer()
-    rclpy.spin(visualizer)
-    visualizer.destroy_node()
+def main(args=None):
+    rclpy.init(args=args)
+    node = Visualizer()
+    rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 

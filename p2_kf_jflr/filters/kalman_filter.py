@@ -59,7 +59,7 @@ class KalmanFilter_2:
     def predict(self, u=None, dt=1.0):
         # Implement Kalman filter prediction step
         # Predict the new mean (mu) using A, B, and control input u
-        self.mu = self.A(dt) @ self.mu + self.B(self.mu, dt) @ u
+        self.mu = self.A(dt) @ self.mu # + self.B(self.mu, dt) @ u
         # Predict the new covariance (Sigma) using A and R
         self.Sigma = self.A(dt) @ self.Sigma @ self.A(dt).T + self.R
 
